@@ -3,6 +3,9 @@ var stream = require("stream");
 var fileType = require("file-type");
 var isSvg = require("is-svg");
 var parallel = require("run-parallel");
+var util = require('util');
+var Upload = require('@aws-sdk/lib-storage').Upload;
+var DeleteObjectCommand = require('@aws-sdk/client-s3').DeleteObjectCommand;
 
 function staticValue(value) {
   return function (req, file, cb) {
@@ -335,14 +338,17 @@ S3Storage.prototype.directUpload = function (opts, file, cb) {
     params.ContentDisposition = opts.contentDisposition;
   }
 
-  var upload = this.s3.upload(params);
+  var upload = new Upload({
+    client: this.s3,
+    params,
+  });
 
   upload.on("httpUploadProgress", function (ev) {
     if (ev.total) currentSize = ev.total;
   });
 
-  upload.send(function (err, result) {
-    if (err) return cb(err);
+  util.callbackify(upload.done.bind(upload))(function (err, result) {
+    if (err) return cb(err)
 
     cb(null, {
       size: currentSize,
@@ -351,13 +357,14 @@ S3Storage.prototype.directUpload = function (opts, file, cb) {
       acl: opts.acl,
       contentType: opts.contentType,
       contentDisposition: opts.contentDisposition,
+      contentEncoding: opts.contentEncoding,
       storageClass: opts.storageClass,
       serverSideEncryption: opts.serverSideEncryption,
       metadata: opts.metadata,
       location: result.Location,
       etag: result.ETag,
-      versionId: result.VersionId,
-    });
+      versionId: result.VersionId
+    })
   });
 };
 
@@ -376,7 +383,7 @@ S3Storage.prototype.transformUpload = function (opts, req, file, cb) {
         storage.getTransforms[i].transform(req, file, function (err, piper) {
           if (err) return cb(err);
 
-          var upload = storage.s3.upload({
+          const params = {
             Bucket: opts.bucket,
             Key: key,
             ACL: opts.acl,
@@ -387,14 +394,19 @@ S3Storage.prototype.transformUpload = function (opts, req, file, cb) {
             ServerSideEncryption: opts.serverSideEncryption,
             SSEKMSKeyId: opts.sseKmsKeyId,
             Body: (opts.replacementStream || file.stream).pipe(piper),
-          });
+          }
 
-          upload.on("httpUploadProgress", function (ev) {
-            if (ev.total) currentSize = ev.total;
+          var upload = new Upload({
+            client: storage.s3,
+            params,
           });
-
-          upload.send(function (err, result) {
-            if (err) return cb(err);
+      
+          upload.on('httpUploadProgress', function (ev) {
+            if (ev.total) currentSize = ev.total
+          })
+      
+          util.callbackify(upload.done.bind(upload))(function (err, result) {
+            if (err) return cb(err)
 
             results.push({
               id: storage.getTransforms[i].id || i,
@@ -422,7 +434,13 @@ S3Storage.prototype.transformUpload = function (opts, req, file, cb) {
 };
 
 S3Storage.prototype._removeFile = function (req, file, cb) {
-  this.s3.deleteObject({ Bucket: file.bucket, Key: file.key }, cb);
+  this.s3.send(
+    new DeleteObjectCommand({
+      Bucket: file.bucket,
+      Key: file.key
+    }),
+    cb
+  )
 };
 
 module.exports = function (opts) {
