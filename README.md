@@ -12,7 +12,7 @@ This project is mostly an integration piece for existing code samples from Multe
 npm install --save multer-aws-s3-sdk-v3-transform
 ```
 
-## Usage [not updated yet]
+## Usage
 
 ```javascript
 var aws = require('aws-sdk')
