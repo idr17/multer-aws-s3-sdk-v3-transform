@@ -1,5 +1,5 @@
 {
-  "name": "multer-s3-transform",
+  "name": "multer-aws-s3-sdk-v3-transform",
   "version": "2.10.3",
   "description": "Streaming multer storage engine for AWS S3",
   "main": "index.js",
@@ -23,12 +23,13 @@
   },
   "homepage": "https://github.com/tehkaiyu/multer-s3#readme",
   "dependencies": {
+    "@aws-sdk/lib-storage": "^3.46.0",
+    "@aws-sdk/client-s3": "^3.0.0",
     "file-type": "^3.3.0",
     "is-svg": "^2.1.0",
     "run-parallel": "^1.1.6"
   },
   "devDependencies": {
-    "aws-sdk": "^2.2.32",
     "concat-stream": "^1.5.1",
     "express": "^4.13.1",
     "form-data": "^1.0.0-rc3",
