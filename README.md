@@ -18,7 +18,7 @@ npm install --save multer-aws-s3-sdk-v3-transform
 var aws = require('aws-sdk')
 var express = require('express')
 var multer = require('multer')
-var multerS3 = require('multer-s3-transform')
+var multerS3 = require('multer-aws-s3-sdk-v3-transform')
 
 var app = express()
 var s3 = new aws.S3({ /* ... */ })
